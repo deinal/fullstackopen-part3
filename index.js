@@ -43,43 +43,60 @@ app.get('/', (req, res) => {
 })
 
 app.get('/info', (req, res) => {
-    res.send(`<p>Phonebook has info for ${persons.length} people <br> ${new Date()}</p>`)
+    Person.find({}).then(persons => {
+        res.end(`<p>Phonebook has info for ${persons.length} people <br> ${new Date()}</p>`)
+    })
 })
 
-// const generateId = () => {
-//     const maxId = persons.length > 0
-//         ? Math.floor(Math.random() * 1000)
-//         : 1
-//     return maxId
-// }
-
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
     const body = req.body
-
+    console.log(body)
     if (!body.name || !body.number) {
         return res.status(400).json({
             error: 'name or number missing'
         })
     }
-    // exist = persons.some(p => p.name.toLowerCase().includes(body.name.toLowerCase()))
-    // if (exist) {
-    //     return res.status(400).json({
-    //         error: 'name must be unique'
-    //     })
-    // }
 
-    const person = new Person({
+    Person.find({ name: body.name })
+        .then(person => {
+            console.log(person)
+            if (person.length != 0) {
+                console.log(person[0]._id)
+                const newperson = {
+                    name: body.name,
+                    number: body.number,
+                }
+                Person.findByIdAndUpdate(person[0]._id, newperson, { new: true })
+                    .then(updatedPerson => {
+                        res.json(updatedPerson.toJSON())
+                    })
+                    .catch(error => next(error))
+            } else {
+                const person = new Person({
+                    name: body.name,
+                    number: body.number,
+                })
+
+                person.save().then(savedPerson => {
+                    res.json(persons)
+                })
+            }
+        })
+})
+
+app.put('/api/persons/:id', (req, res, next) => {
+    const body = req.body
+
+    const person = {
         name: body.name,
         number: body.number,
-        // id: generateId()
-    })
+    }
 
-    // persons = persons.concat(person)
-    // res.json(person)
-
-    person.save().then(savedPerson => {
-        res.json(persons)
-    })
+    Person.findByIdAndUpdate(req.params.id, person, { new: true })
+        .then(updatedPerson => {
+            res.json(updatedPerson.toJSON())
+        })
+        .catch(error => next(error))
 })
 
 app.get('/api/persons', (req, res) => {
