@@ -28,39 +28,18 @@ app.get('/info', (req, res) => {
 })
 
 app.post('/api/persons', (req, res, next) => {
-    const body = req.body
-    console.log(body)
-    if (!body.name || !body.number) {
-        return res.status(400).json({
-            error: 'name or number missing'
-        })
-    }
+    const { name, number } = req.body
 
-    Person.find({ name: body.name })
-        .then(person => {
-            console.log(person)
-            if (person.length != 0) {
-                console.log(person[0]._id)
-                const newperson = {
-                    name: body.name,
-                    number: body.number,
-                }
-                Person.findByIdAndUpdate(person[0]._id, newperson, { new: true })
-                    .then(updatedPerson => {
-                        res.json(updatedPerson.toJSON())
-                    })
-                    .catch(error => next(error))
-            } else {
-                const person = new Person({
-                    name: body.name,
-                    number: body.number,
-                })
+    const person = new Person({
+        name, number
+    })
 
-                person.save().then(savedPerson => {
-                    res.json(persons)
-                })
-            }
+    person
+        .save()
+        .then(savedPerson => {
+            res.json(savedPerson.toJSON())
         })
+        .catch(error => next(error))
 })
 
 app.put('/api/persons/:id', (req, res, next) => {
@@ -80,7 +59,7 @@ app.put('/api/persons/:id', (req, res, next) => {
 
 app.get('/api/persons', (req, res) => {
     Person.find({}).then(persons => {
-        res.json(persons)
+        res.json(persons.map(person => person.toJSON()))
     })
 })
 
@@ -90,7 +69,7 @@ app.get('/api/persons/:id', (req, res, next) => {
             if (person) {
                 res.json(person.toJSON())
             } else {
-                res.status(204).end()
+                res.status(404).end()
             }
         })
         .catch(error => next(error))
